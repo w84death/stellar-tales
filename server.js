@@ -12,7 +12,8 @@ console.log('Welcome to the Stellar Tales server');
 console.log('(c) 2014 P1X\n\n');
 console.log('Server starting..');
 
-var express     =   require('express'),
+var fs          =   require('fs'),
+    express     =   require('express'),
     app         =   express(),
     http        =   require('http').Server(app),
     io          =   require('socket.io')(http),
@@ -23,11 +24,12 @@ var server = {
     setup: {
         fps: 1,
         synchroTime: 10,
+        saveUniverseTime: 60,
     },
     players: [],
     time: new Date(),
     tick: 0,
-    world: {},
+    universe: {},
 
     init: function(){
         // WEB
@@ -37,8 +39,8 @@ var server = {
 
         app.use(express.static(__dirname + '/public'));
 
-        console.log('Loading world..');
-        this.loadWorld();
+        console.log('Loading universe..');
+        this.loadUniverse();
 
         // connections
         io.on('connection', function(client){
@@ -61,12 +63,30 @@ var server = {
             console.log('http server started!');
         });
 
-        // STRAT LOP
+        // STRAT LOOP
         setInterval(server.loop, 1000/this.setup.fps);
     },
 
-    loadWorld: function(){
-        // load from file
+    loadUniverse: function(){
+        fs.readFile('./universe.json', 'utf8', function (err,data) {
+          if (err) {
+            return console.log(err);
+          }
+          server.universe = JSON.parse(data);
+          console.log('Universe loaded successfully.');
+        });
+    },
+
+    saveUniverse: function(){
+        var universe = JSON.stringify(this.universe);
+
+        fs.writeFile('./universe.json', universe, function (err) {
+            if (err) {
+                console.log(err.message);
+                return;
+            }
+            console.log('Universe saved successfully.');
+        });
     },
 
     addPlayer: function(id){
@@ -133,9 +153,14 @@ var server = {
         return time.getHours() + ':'+time.getMinutes() + ':' + time.getSeconds() + ' ['+this.tick+']';
     },
 
+    simulateUniverse: function(){
+        // do some awesome procedural calculations :D
+    },
+
     loop: function(){
         server.tick += 1;
         server.time = new Date();
+
         if(server.tick % server.setup.synchroTime == 0){
             io.emit('system', {
                 cmd: 'server-time',
@@ -143,6 +168,12 @@ var server = {
             });
             console.log('time: '+server.getServerTime());
         }
+
+        if(server.tick % server.setup.saveUniverseTime == 0){
+            server.saveUniverse();
+        }
+
+        server.simulateUniverse();
     }
 }
 
