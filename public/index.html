@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" sizes="72x72" href="apple-touch-icon-ipad.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="apple-touch-icon-iphone-retina-display.png" />
+    <title>Stellar Tales</title>
+    <!-- Stellar Tales is a massive multiplayer space simulation game. It uses only text for visual effects so it's highly dependent on players imagination. -->
+    <link rel="icon" type="image/png" id="favicon" href="favicon.png"/>
+    <style type="text/css">
+        html,
+        body        { margin: 0; padding: 0;
+                    background-color: #000; color: #fff;
+                    font-family: Consolas,monospace;
+                    font-size:10pt; letter-spacing:5pt;
+                    cursor: crosshair; }
+
+        #game       { width:1100px; height:450px;}
+        #log        { width:687px; height:100px; }
+        #command    { width:413px; height:100px; }
+        section     { width:1100px;}
+        #game,
+        #log,
+        #command     { float:left; vertical-align:top;
+                    user-select:none; -webkit-user-select:none;
+                    white-space:nowrap; }
+
+        .ui strong  { background-color: #fff; color: #000; }
+        .ui span    { cursor:pointer; }
+        .ui span:hover { background-color:#fff; color:#000; }
+        .ui em      { color:#31a2f2; }
+
+        .log        { color:#44891a; }
+        .ship       { color:#a3ce27; }
+        .pirate     { color:#be2633; }
+        .station    { color:#eb8931; }
+        .star-1     { color:#005784; }
+        .star-2     { color:#31a2f2; }
+        .star-3     { color:#b2dcef; }
+        .button     { color:#eb8931; }
+    </style>
+</head>
+<body>
+<div id="game" class="ui"></div>
+<section>
+    <div id="command" class="ui"></div>
+    <div id="log" class="ui"></div>
+</section>
+<script src="/socket.io/socket.io.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
