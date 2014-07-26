@@ -24,7 +24,7 @@ var server = {
     setup: {
         fps: 1,
         synchroTime: 10,
-        saveUniverseTime: 60,
+        saveUniverseTime: 10*60,
     },
     players: [],
     time: new Date(),
