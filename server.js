@@ -17,7 +17,7 @@ var fs          =   require('fs'),
     app         =   express(),
     http        =   require('http').Server(app),
     io          =   require('socket.io')(http),
-    uuid        =   require('uuid');
+    idgen       =   require('idgen');;
 
 var server = {
 
@@ -28,7 +28,7 @@ var server = {
         universeDevMode: true,
         universeSize: 100,
     },
-    players: [],
+    players: {},
     time: new Date(),
     tick: 0,
     universe: {},
@@ -50,10 +50,8 @@ var server = {
 
         // connections
         io.on('connection', function(client){
-            var id = uuid.v4();
             // conencted
-            client.join(client.id);
-            server.addPlayer(client.id);
+            var gameID = server.addPlayer(client.id, client);
 
             // disconnected
             client.on('disconnect', function(){
@@ -61,12 +59,40 @@ var server = {
             });
 
             client.on('system', function(data){
-                if(data.cmd == 'new-uuid'){
-                    server.setNewPlayerUUID({
-                        oldId: client.id,
-                        newId: data.val
+                if(data.cmd == 'change-game-id'){
+                    server.setPlayerGameID({
+                        id: client.id,
+                        gameID: data.val
+                    })
+
+                    client.join(data.val);
+
+                    io.to(data.val).emit('log', {
+                        time: server.getServerTime(),
+                        log: 'Successfully changed gameID'
                     });
-                    client.id = data.val;
+
+                }
+                if(data.cmd == 'debug-ping'){
+                    io.to(server.players[client.id].gameID).emit('log', {
+                        time: server.getServerTime(),
+                        log: 'Debug: pong!'
+                    });
+                    console.log(server.getServerTime() + ' Debug ping-pong sent to [ID: ' + client.id+ ' ]');
+                }
+                if(data.cmd == 'debug-uuid'){
+                    io.to(server.players[client.id].gameID).emit('log', {
+                        time: server.getServerTime(),
+                        log: 'Debug: Your UUID is ' + client.id
+                    });
+                    console.log(server.getServerTime() + ' Debug client requested UUID [ID: ' + client.id+ ' ]');
+                }
+                if(data.cmd == 'debug-game-id'){
+                    io.to(server.players[client.id].gameID).emit('log', {
+                        time: server.getServerTime(),
+                        log: 'Debug: Your gameID is ' + server.players[client.id].gameID
+                    });
+                    console.log(server.getServerTime() + ' Debug client requested gameID ' + server.players[client.id].gameID);
                 }
             });
 
@@ -156,24 +182,22 @@ var server = {
         });
     },
 
-    setNewPlayerUUID: function(params){
-        for (var i = 0; i < this.players.length; i++) {
-            if(this.players[i].id === params.oldId){
-                this.players[i].id = params.newId;
-                console.log(this.getServerTime() + ' player changed UUID [ID: '+params.oldId+' ] => [ID: '+params.newId+' ]');
-                return true;
-            }
-        };
-        return false;
+    setPlayerGameID: function(params){
+        this.players[params.id].gameID = params.gameID;
+        console.log(this.getServerTime() + ' player changed gameID [ID: '+params.id+' ] => [gameID: '+params.gameID+' ]');
     },
 
-    addPlayer: function(id){
-        server.players.push({
-            id: id,
-            time: server.getServerTime()
-        });
+    addPlayer: function(id, client){
+        var gameID = idgen(20);
 
-        console.log(this.getServerTime() + ' player connected [ID: '+id+' ]');
+        server.players[id] = {
+            gameID: gameID,
+            time: server.getServerTime()
+        };
+
+        client.join(gameID);
+
+        console.log(this.getServerTime() + ' player connected [ID: '+id+' ] [gameID: '+gameID+' ]');
         console.log(this.getServerTime() + ' total players: '+server.getTotalPlayers());
 
         // SENT TO EVERYINE
@@ -188,11 +212,11 @@ var server = {
             val: server.getTotalPlayers()
         });
 
-        // SEND TONLY O CLIENT
+        // SEND ONLY TO CLIENT
 
         io.to(id).emit('system', {
-            cmd: 'uuid',
-            val: id
+            cmd: 'game-id',
+            val: gameID
         });
 
         // SEND SETTINGS
@@ -210,7 +234,7 @@ var server = {
             totalPlayers: server.getTotalPlayers(),
             serverTime: server.getServerTime()
         });
-        return true;
+        return gameID;
     },
 
     removePlayer: function(id){
@@ -238,7 +262,11 @@ var server = {
     },
 
     getTotalPlayers: function(){
-        return this.players.length;
+        var total = 0;
+        for (var key in this.players) {
+            total += 1;
+        }
+        return total;
     },
 
     getServerTime: function(){

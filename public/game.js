@@ -17,7 +17,7 @@ var game = {
         fps:1,
         gameLogLength: 12,
     },
-    id: localStorage.getItem("stellar-tales-uuid") || false,
+    gameID: localStorage.getItem("stellar-tales-game-id") || false,
     stats: {
         players: 1,
         universeTime: 'N/A',
@@ -52,12 +52,31 @@ var game = {
     },{
         log: 'Game by Krzysztof Jankowski, &copy; 2014 P1X'
     }],
+    commandCenter: [{
+        label: 'SEND PING',
+        cmd: 'debug-ping',
+        to: 'server'
+    },{
+        label: 'REQUEST UUID',
+        cmd: 'debug-uuid',
+        to: 'server'
+    },{
+        label: 'REQUEST GAME-ID',
+        cmd: 'debug-game-id',
+        to: 'server'
+    }],
 
 
     init: function(){
+        console.log(this.gameID)
         // SET SOCKETS EVENTS
         this.setSockets();
 
+        this.render({
+            game: true,
+            command: true,
+            gameLog: true
+        });
         // START ENGINE
         this.loop();
     },
@@ -69,19 +88,24 @@ var game = {
                 time: data.time,
                 log: data.log
             });
+            game.render({
+                gameLog: true
+            });
         });
 
         // THE SYSTEM EVENT
         socket.on('system', function(data){
-            // UUID
-            if(data.cmd == 'uuid'){
-                if(!game.id){
-                    game.id = data.val;
-                    localStorage.setItem("stellar-tales-uuid", game.id);
+            // gameID
+            if(data.cmd == 'game-id'){
+                if(!game.gameID){
+                    game.setNewGameID({
+                        id: data.val,
+                        emit: false
+                    });
                 }else{
-                    socket.emit('system', {
-                        cmd: 'new-uuid',
-                        val: game.id
+                    game.setNewGameID({
+                        id: game.gameID,
+                        emit: true
                     });
                 }
             }
@@ -109,6 +133,9 @@ var game = {
             if(data.cmd == 'total-players'){
                 game.stats.players = data.val;
             }
+            game.render({
+                command: true
+            });
         });
 
         // THE GAME EVENT
@@ -133,61 +160,140 @@ var game = {
         return bufferLine;
     },
 
-    render: function(){
+    buttonPressed: function(data){
+        if(data.to == 'server'){
+            socket.emit('system', {
+                cmd: data.do
+            });
+        }else{
+            if(data.do == 'show-game-id'){
+                window.alert('Your gameID is '+game.gameID);
+            }
+            if(data.do == 'change-game-id'){
+                var newGameID = window.prompt('Enter your gameID (20 characters)', '');
+                if(newGameID != null && newGameID.length == 20){
+                    game.setNewGameID({
+                        id: newGameID,
+                        emit: true
+                    });
+                }
+            }
+        }
+    },
+
+    setNewGameID: function(params){
+        game.gameID = params.id;
+        localStorage.setItem("stellar-tales-game-id", game.gameID);
+        if(params.emit){
+            socket.emit('system', {
+                cmd: 'change-game-id',
+                val: game.gameID
+            });
+        }
+    },
+
+    render: function(params){
         var bufferLine = '';
 
+        this.removeEvents(params);
+
         // GAME WINDOW
+        if(params.game){
+            // FRAME
+            bufferLine += this.drawHeader('game','Stellar Tales - game world');
 
-        // FRAME
-        bufferLine += this.drawHeader('game','Stellar Tales - game world');
-
-        // GAME
-        /*
-        for (var y = 0; y < game.height; y++) {
-            for (var x = 0; x < game.width; x++) {
-                var t = game.ASCII.void;
-                for (var i = 0; i < game.universe.length; i++) {
-                    if(game.universe[i].x === x && game.universe[i].y === y){
-                        t = game.universe[i].ASCII;
-                    }
-                };
-                bufferLine += t;
+            // GAME
+            /*
+            for (var y = 0; y < game.height; y++) {
+                for (var x = 0; x < game.width; x++) {
+                    var t = game.ASCII.void;
+                    for (var i = 0; i < game.universe.length; i++) {
+                        if(game.universe[i].x === x && game.universe[i].y === y){
+                            t = game.universe[i].ASCII;
+                        }
+                    };
+                    bufferLine += t;
+                }
+                bufferLine += '<br/>';
             }
-            bufferLine += '<br/>';
+            */
+            this.UI.game.html.innerHTML = bufferLine;
         }
-        */
-        this.UI.game.html.innerHTML = bufferLine;
 
         // COMMAND CENTER
-        // STATS
-        bufferLine = '';
-        bufferLine += this.drawHeader('command','Stats');
-        bufferLine += 'UUID: <em>' + this.id + '</em><br/>';
-        bufferLine += 'Players online: <em>' + this.stats.players + '</em><br/>';
-        bufferLine += 'Server time: <em>'+ this.serverTime +'</em><br/>';
-        bufferLine += 'Universe:<br/>';
-        bufferLine += '- created at: <em>' + this.stats.universeTime + '</em><br/>';
-        bufferLine += '- planets: <em>' + this.stats.planets + '</em><br/>';
-        bufferLine += '- stars: <em>' + this.stats.stars + '</em><br/>';
+        if(params.command){
+            // STATS
+            bufferLine = '';
+            bufferLine += this.drawHeader('command','Stats');
+            bufferLine += 'gameID: [<span class="button" data-do="show-game-id">SHOW</span>] [<span class="button" data-do="change-game-id">CHANGE</span>]<br/>';
+            bufferLine += 'Players online: <em>' + this.stats.players + '</em><br/>';
+            bufferLine += 'Server time: <em>'+ this.serverTime +'</em><br/>';
+            bufferLine += 'Universe:<br/>';
+            bufferLine += '- created at: <em>' + this.stats.universeTime + '</em><br/>';
+            bufferLine += '- planets: <em>' + this.stats.planets + '</em><br/>';
+            bufferLine += '- stars: <em>' + this.stats.stars + '</em><br/>';
 
-        // CENTER
-        bufferLine += this.drawHeader('command','Command Center');
-        bufferLine += 'N/A';
-        this.UI.command.html.innerHTML = bufferLine;
+            // COMMAND
+            bufferLine += this.drawHeader('command','Command Center');
+            for (var i = 0; i < this.commandCenter.length; i++) {
+                bufferLine += '[<span class="button" data-do="'+this.commandCenter[i].cmd+'" data-to="'+this.commandCenter[i].to+'">'+this.commandCenter[i].label+'</span>]<br/>';
+            };
+            this.UI.command.html.innerHTML = bufferLine;
+        }
 
         // GAME LOG
-        bufferLine = '';
-        bufferLine += this.drawHeader('log','System log');
-        for (var i = this.gameLog.length-1; (i > this.gameLog.length-this.setup.gameLogLength && i >= 0); i--) {
-            bufferLine += (this.gameLog[i].time? this.gameLog[i].time + ' ' : '') + this.gameLog[i].log + '<br/>';
-        };
-        this.UI.log.html.innerHTML = bufferLine;
+        if(params.gameLog){
+            bufferLine = '';
+            bufferLine += this.drawHeader('log','System log');
+            for (var i = this.gameLog.length-1; (i > this.gameLog.length-this.setup.gameLogLength && i >= 0); i--) {
+                bufferLine += (this.gameLog[i].time? this.gameLog[i].time + ' ' : '') + this.gameLog[i].log + '<br/>';
+            };
+            this.UI.log.html.innerHTML = bufferLine;
+        }
+        this.registerEvents(params);
+    },
+
+    removeEvents: function(params){
+        if(params.game){
+            var anchors = this.UI.game.html.getElementsByClassName("button");
+            for (var i = 0; i < anchors.length ; i++) {
+                anchors[i].removeEventListener('click');
+            }
+        }
+
+        if(params.command){
+            var anchors = this.UI.command.html.getElementsByClassName("button");
+            for (var i = 0; i < anchors.length ; i++) {
+                anchors[i].removeEventListener('click');
+            }
+        }
+    },
+
+    registerEvents: function(params){
+        if(params.game){
+            var anchors = this.UI.game.html.getElementsByClassName("button");
+            for (var i = 0; i < anchors.length ; i++) {
+                anchors[i].addEventListener('click',function () {
+                    game.buttonPressed(this.dataset);
+                },false);
+            }
+        }
+        if(params.command){
+            var anchors = this.UI.command.html.getElementsByClassName("button");
+            for (var i = 0; i < anchors.length ; i++) {
+                anchors[i].addEventListener('click',function () {
+                    game.buttonPressed(this.dataset);
+                },false);
+            }
+        }
     },
 
     loop: function(){
         window.setTimeout(game.loop, 1000/game.setup.fps);
 
-        game.render();
+        game.render({
+            game: true
+        });
     },
 
 };
