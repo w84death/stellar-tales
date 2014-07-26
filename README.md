@@ -16,13 +16,17 @@ What is already done
 ====================
 Server:
 - connect/disconnect players
+- authentication using unique gameID
+- generating empty univers
 - load and save (backup) universe to file
 
 Client:
-- some GUI
+- GUI redering
 - recieving and showing logs/stats
 - login using localStorage (come back to game using the same browser)
 - ability to change gameID and login on fresh browser
+- works for one gameID on many browsers at the same time
+
 
 Play the early version
 ======================
