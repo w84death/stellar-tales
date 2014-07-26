@@ -76,23 +76,23 @@ var server = {
                 if(data.cmd == 'debug-ping'){
                     io.to(server.players[client.id].gameID).emit('log', {
                         time: server.getServerTime(),
-                        log: 'Debug: pong!'
+                        log: 'pong!'
                     });
-                    console.log(server.getServerTime() + ' Debug ping-pong sent to [ID: ' + client.id+ ' ]');
+                    console.log(server.getServerTime() + ' Debug: ping-pong sent to [ID: ' + client.id+ ' ]');
                 }
                 if(data.cmd == 'debug-uuid'){
                     io.to(server.players[client.id].gameID).emit('log', {
                         time: server.getServerTime(),
-                        log: 'Debug: Your UUID is ' + client.id
+                        log: 'Your UUID is ' + client.id
                     });
-                    console.log(server.getServerTime() + ' Debug client requested UUID [ID: ' + client.id+ ' ]');
+                    console.log(server.getServerTime() + ' Debug: client requested UUID [ID: ' + client.id+ ' ]');
                 }
                 if(data.cmd == 'debug-game-id'){
                     io.to(server.players[client.id].gameID).emit('log', {
                         time: server.getServerTime(),
-                        log: 'Debug: Your gameID is ' + server.players[client.id].gameID
+                        log: 'Your gameID is ' + server.players[client.id].gameID
                     });
-                    console.log(server.getServerTime() + ' Debug client requested gameID ' + server.players[client.id].gameID);
+                    console.log(server.getServerTime() + ' Debug: client requested gameID ' + server.players[client.id].gameID);
                 }
             });
 
@@ -197,14 +197,14 @@ var server = {
 
         client.join(gameID);
 
-        console.log(this.getServerTime() + ' player connected [ID: '+id+' ] [gameID: '+gameID+' ]');
-        console.log(this.getServerTime() + ' total players: '+server.getTotalPlayers());
+        console.log(this.getServerTime() + ' Player connected [ID: '+id+' ] [gameID: '+gameID+' ]');
+        console.log(this.getServerTime() + ' Total players: '+server.getTotalPlayers());
 
         // SENT TO EVERYINE
 
         io.emit('log', {
             time: server.getServerTime(),
-            log: 'player connected'
+            log: 'Player connected'
         });
 
         io.emit('system', {
@@ -245,12 +245,12 @@ var server = {
             }
         };
 
-        console.log(this.getServerTime() + ' player disconnected [ID: '+id+' ]');
-        console.log(this.getServerTime() + ' total players: '+server.getTotalPlayers());
+        console.log(this.getServerTime() + ' Player disconnected [ID: '+id+' ]');
+        console.log(this.getServerTime() + ' Total players: '+server.getTotalPlayers());
 
         io.emit('log', {
             time: server.getServerTime(),
-            log: 'player disconnected'
+            log: 'Player disconnected'
         });
 
         io.emit('system', {
