@@ -25,6 +25,8 @@ var server = {
         fps: 1,
         synchroTime: 10,
         saveUniverseTime: 10*60,
+        universeDevMode: true,
+        universeSize: 100,
     },
     players: [],
     time: new Date(),
@@ -32,20 +34,25 @@ var server = {
     universe: {},
 
     init: function(){
+        app.use(express.static(__dirname + '/public'));
+
         // WEB
         app.get('/', function(req, res){
           res.sendfile('public/index.html');
         });
 
-        app.use(express.static(__dirname + '/public'));
-
-        console.log('Loading universe..');
-        this.loadUniverse();
+        console.log(this.getServerTime() + ' Loading universe..');
+        if(!this.setup.universeDevMode){
+            this.loadUniverse();
+        }else{
+            this.loadDevUniverse();
+        }
 
         // connections
         io.on('connection', function(client){
             var id = uuid.v4();
             // conencted
+            client.join(client.id);
             server.addPlayer(client.id);
 
             // disconnected
@@ -53,18 +60,78 @@ var server = {
                 server.removePlayer(client.id);
             });
 
-            client.on('command', function(data){
+            client.on('system', function(data){
+                if(data.cmd == 'new-uuid'){
+                    server.setNewPlayerUUID({
+                        oldId: client.id,
+                        newId: data.val
+                    });
+                    client.id = data.val;
+                }
+            });
+
+            client.on('game', function(data){
+                // request for universe visible chunk
 
             });
         });
 
         // server
         http.listen(1337, function(){
-            console.log('http server started!');
+            console.log(server.getServerTime() + ' http server started!');
         });
 
         // STRAT LOOP
         setInterval(server.loop, 1000/this.setup.fps);
+    },
+
+    loadDevUniverse: function(){
+        // CREATE CLEAR UNIVERSE
+        var devUni = {
+            // time of univers creation
+            time: this.getServerDate(),
+
+            // all static entities
+            // server will only
+            static: {
+                stars: [],
+                planets: [],
+                gates: []
+            },
+
+            // all dynamic entities
+            // server will simulate movements of those
+            dynamic: {
+                asteroids: [],
+                ships: [],
+            }
+        };
+
+        // CREATE STARTS
+        for (var i = 0; i < 4 + (Math.random()*12)<<0; i++) {
+            devUni.static.stars.push({
+                energy: 1024,
+                pos: {
+                    x: (Math.random()*this.setup.universeSize)<<0,
+                    y: (Math.random()*this.setup.universeSize)<<0
+                }
+            });
+        };
+
+        // CERATE PLANETS
+        for (var i = 0; i < 64 + (Math.random()*128)<<0; i++) {
+            devUni.static.planets.push({
+                size: 1,
+                material: 64,
+                pos: {
+                    x: (Math.random()*this.setup.universeSize)<<0,
+                    y: (Math.random()*this.setup.universeSize)<<0
+                }
+            });
+        }
+
+        //
+        server.universe = devUni;
     },
 
     loadUniverse: function(){
@@ -73,7 +140,7 @@ var server = {
             return console.log(err);
           }
           server.universe = JSON.parse(data);
-          console.log('Universe loaded successfully.');
+          console.log(server.getServerTime() + ' Universe loaded successfully.');
         });
     },
 
@@ -85,37 +152,63 @@ var server = {
                 console.log(err.message);
                 return;
             }
-            console.log('Universe saved successfully.');
+            console.log(server.getServerTime() + ' Universe saved successfully.');
         });
+    },
+
+    setNewPlayerUUID: function(params){
+        for (var i = 0; i < this.players.length; i++) {
+            if(this.players[i].id === params.oldId){
+                this.players[i].id = params.newId;
+                console.log(this.getServerTime() + ' player changed UUID [ID: '+params.oldId+' ] => [ID: '+params.newId+' ]');
+                return true;
+            }
+        };
+        return false;
     },
 
     addPlayer: function(id){
         server.players.push({
             id: id,
-            time: new Date()
+            time: server.getServerTime()
         });
 
-        console.log('new player connected [ID: '+id+' ]');
-        console.log('Total players: '+server.getTotalPlayers());
+        console.log(this.getServerTime() + ' player connected [ID: '+id+' ]');
+        console.log(this.getServerTime() + ' total players: '+server.getTotalPlayers());
+
+        // SENT TO EVERYINE
 
         io.emit('log', {
-            id: id,
-            log: 'new player connected'
-        });
-
-        io.emit('system', {
-            cmd: 'server-fps',
-            val: server.setup.fps
-        });
-
-        io.emit('system', {
-            cmd: 'server-time',
-            val: server.getServerTime()
+            time: server.getServerTime(),
+            log: 'player connected'
         });
 
         io.emit('system', {
             cmd: 'total-players',
             val: server.getTotalPlayers()
+        });
+
+        // SEND TONLY O CLIENT
+
+        io.to(id).emit('system', {
+            cmd: 'uuid',
+            val: id
+        });
+
+        // SEND SETTINGS
+        io.to(id).emit('system', {
+            cmd: 'server-settings',
+            fps: server.setup.fps
+        });
+
+        // SEND STATS
+        io.to(id).emit('system', {
+            cmd: 'server-stats',
+            universeTime: server.universe.time,
+            universePlanets: server.universe.static.planets.length,
+            universeStars: server.universe.static.stars.length,
+            totalPlayers: server.getTotalPlayers(),
+            serverTime: server.getServerTime()
         });
         return true;
     },
@@ -128,11 +221,11 @@ var server = {
             }
         };
 
-        console.log('player disconnected [ID: '+id+' ]');
-        console.log('Total players: '+server.getTotalPlayers());
+        console.log(this.getServerTime() + ' player disconnected [ID: '+id+' ]');
+        console.log(this.getServerTime() + ' total players: '+server.getTotalPlayers());
 
         io.emit('log', {
-            id: id,
+            time: server.getServerTime(),
             log: 'player disconnected'
         });
 
@@ -150,11 +243,16 @@ var server = {
 
     getServerTime: function(){
         var time = this.time;
-        return time.getHours() + ':'+time.getMinutes() + ':' + time.getSeconds() + ' ['+this.tick+']';
+        return z(time.getHours(),2) + ':'+z(time.getMinutes(),2) + ':' + z(time.getSeconds(),2);
+    },
+
+    getServerDate: function(){
+      var time = this.time;
+        return time.getFullYear() + '-'+z(time.getMonth()+1,2) + '-' + z(time.getDate(),2);
     },
 
     simulateUniverse: function(){
-        // do some awesome procedural calculations :D
+        // do some awesome procedural calculations
     },
 
     loop: function(){
@@ -177,4 +275,9 @@ var server = {
     }
 }
 
+function z(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+}
 server.init();

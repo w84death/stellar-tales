@@ -15,8 +15,18 @@ var game = {
 
     setup:{
         fps:1,
+        gameLogLength: 12,
     },
-    id:null,
+    id: localStorage.getItem("stellar-tales-uuid") || false,
+    stats: {
+        players: 1,
+        universeTime: 'N/A',
+        planets: 'N/A',
+        starts: 'N/A'
+    },
+    serverTime: 'N/A',
+
+    // UI
     UI:{
         game: {
             html: document.getElementById('game'),
@@ -34,15 +44,15 @@ var game = {
             height: 20,
         }
     },
-    totalPlayers: 1,
     ASCII:{
         void:'',
     },
     gameLog: [{
-        id: false,
-        log: '<strong>Welcome to the Stellar Tales</strong>'
+        log: 'Welcome to the <strong>Stellar Tales</strong>'
+    },{
+        log: 'Game by Krzysztof Jankowski, &copy; 2014 P1X'
     }],
-    serverTime: false,
+
 
     init: function(){
         // SET SOCKETS EVENTS
@@ -56,21 +66,48 @@ var game = {
         // THE LOG EVENT
         socket.on('log', function(data){
             game.gameLog.push({
-                id: data.id,
+                time: data.time,
                 log: data.log
             });
         });
 
         // THE SYSTEM EVENT
         socket.on('system', function(data){
-            if(data.cmd == 'total-players'){
-                game.totalPlayers = data.val;
+            // UUID
+            if(data.cmd == 'uuid'){
+                if(!game.id){
+                    game.id = data.val;
+                    localStorage.setItem("stellar-tales-uuid", game.id);
+                }else{
+                    socket.emit('system', {
+                        cmd: 'new-uuid',
+                        val: game.id
+                    });
+                }
             }
+
+            // SETTINGS
+            if(data.cmd == 'server-settings'){
+                game.setup.fps = data.fps;
+            }
+
+            // STATS
+            if(data.cmd == 'server-stats'){
+                game.stats.universeTime = data.universeTime;
+                game.stats.planets = data.universePlanets;
+                game.stats.stars = data.universeStars;
+                game.stats.players = data.totalPlayers;
+                game.serverTime = data.serverTime;
+            }
+
+            // TIME
             if(data.cmd == 'server-time'){
                 game.serverTime = data.val;
             }
-            if(data.cmd == 'server-fps'){
-                game.setup.fps = data.val;
+
+            // TOTAL PLAYERS
+            if(data.cmd == 'total-players'){
+                game.stats.players = data.val;
             }
         });
 
@@ -125,8 +162,13 @@ var game = {
         // STATS
         bufferLine = '';
         bufferLine += this.drawHeader('command','Stats');
-        bufferLine += 'Players online: <em>' + this.totalPlayers + '</em><br/>';
-        bufferLine += 'Server time: <em>'+ (this.serverTime? this.serverTime : 'N/A') +'</em><br/>';
+        bufferLine += 'UUID: <em>' + this.id + '</em><br/>';
+        bufferLine += 'Players online: <em>' + this.stats.players + '</em><br/>';
+        bufferLine += 'Server time: <em>'+ this.serverTime +'</em><br/>';
+        bufferLine += 'Universe:<br/>';
+        bufferLine += '- created at: <em>' + this.stats.universeTime + '</em><br/>';
+        bufferLine += '- planets: <em>' + this.stats.planets + '</em><br/>';
+        bufferLine += '- stars: <em>' + this.stats.stars + '</em><br/>';
 
         // CENTER
         bufferLine += this.drawHeader('command','Command Center');
@@ -136,12 +178,8 @@ var game = {
         // GAME LOG
         bufferLine = '';
         bufferLine += this.drawHeader('log','System log');
-        for (var i = game.gameLog.length-1; (i > game.gameLog.length-12 && i >= 0); i--) {
-            bufferLine += this.gameLog[i].log;
-            if(this.gameLog[i].id){
-                bufferLine += ' [ID: <em>'+this.gameLog[i].id+'</em>]';
-            }
-            bufferLine += '<br/>';
+        for (var i = this.gameLog.length-1; (i > this.gameLog.length-this.setup.gameLogLength && i >= 0); i--) {
+            bufferLine += (this.gameLog[i].time? this.gameLog[i].time + ' ' : '') + this.gameLog[i].log + '<br/>';
         };
         this.UI.log.html.innerHTML = bufferLine;
     },
