@@ -27,8 +27,22 @@ Client:
 - ability to change gameID and login on fresh browser
 - works for one gameID on many browsers at the same time
 
-
 Play the early version
 ======================
 Game is under developement so the server is restarted very often and have a lots of bugs.
 If it's working then go to http://194.126.207.20:1337
+
+
+How to run own version
+======================
+Requiements:
+- node
+- npm
+
+Installation:
+- copy all the files to some directory
+- run (in this dir) npm install
+- start server node server.js
+- in browser go to localhost:1337
+
+
