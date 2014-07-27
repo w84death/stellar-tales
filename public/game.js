@@ -45,7 +45,13 @@ var game = {
         }
     },
     ASCII:{
-        void:'',
+        void:       '',
+        planet:     ['.',
+                    '*',
+                    'o'],
+        star:       '@',
+        asteroid:   '!',
+
     },
     gameLog: [{
         log: 'Welcome to the <strong>Stellar Tales</strong>'
@@ -65,10 +71,23 @@ var game = {
         cmd: 'debug-game-id',
         to: 'server'
     }],
-
+    position:{
+        x: 0,
+        y: 0,
+    },
+    universe: {
+        static: {
+            stars: [],
+            planets: [],
+            gates: []
+        },
+        dynamic: {
+            asteroids: [],
+            ships: [],
+        }
+    },
 
     init: function(){
-        console.log(this.gameID)
         // SET SOCKETS EVENTS
         this.setSockets();
 
@@ -77,6 +96,17 @@ var game = {
             command: true,
             gameLog: true
         });
+
+        // SEND CLIENT POSITION
+        /*
+        socket.emit('game', {
+            cmd: 'set-pos',
+            x: game.position.x,
+            y: game.position.y,
+            w: game.UI.game.width,
+            h: game.UI.game.height
+        });*/
+
         // START ENGINE
         this.loop();
     },
@@ -113,6 +143,8 @@ var game = {
             // SETTINGS
             if(data.cmd == 'server-settings'){
                 game.setup.fps = data.fps;
+                game.position.x = data.pos.x;
+                game.position.y = data.pos.y;
             }
 
             // STATS
@@ -140,7 +172,9 @@ var game = {
 
         // THE GAME EVENT
         socket.on('game', function(data){
-
+            if(data.type = 'uni-chunk'){
+                game.universe = data.data;
+            }
         });
     },
 
@@ -224,11 +258,12 @@ var game = {
         if(params.command){
             // STATS
             bufferLine = '';
-            bufferLine += this.drawHeader('command','Stats');
+            bufferLine += this.drawHeader('command','Info');
             bufferLine += 'gameID: [<span class="button" data-do="show-game-id">SHOW</span>] [<span class="button" data-do="change-game-id">CHANGE</span>]<br/>';
             bufferLine += 'Players online: <em>' + this.stats.players + '</em><br/>';
             bufferLine += 'Server time: <em>'+ this.serverTime +'</em><br/>';
             bufferLine += 'Universe:<br/>';
+            bufferLine += '- view position: <em>'+this.position.x+':'+this.position.y+'</em><br/>';
             bufferLine += '- created at: <em>' + this.stats.universeTime + '</em><br/>';
             bufferLine += '- planets: <em>' + this.stats.planets + '</em><br/>';
             bufferLine += '- stars: <em>' + this.stats.stars + '</em><br/>';

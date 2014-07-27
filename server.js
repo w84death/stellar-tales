@@ -98,13 +98,23 @@ var server = {
 
             client.on('game', function(data){
                 // request for universe visible chunk
+                if(data.cmd == 'set-pos'){
+                    var player = server.players[client.id];
+                    player.position = {
+                        x: data.x,
+                        y: data.y,
+                    };
+                    player.width = data.w;
+                    player.height = data.h;
+                    console.log(server.getServerTime() + ' Player [gameID: '+player.gameID+' ] set position at ' + player.position.x + ':' + player.position.y +' and view size ' +player.width+'x'+player.height);
+                }
 
             });
         });
 
         // server
         http.listen(1337, function(){
-            console.log(server.getServerTime() + ' http server started!');
+            console.log(server.getServerTime() + ' Http server started!');
         });
 
         // STRAT LOOP
@@ -138,8 +148,8 @@ var server = {
             devUni.static.stars.push({
                 energy: 1024,
                 pos: {
-                    x: (Math.random()*this.setup.universeSize)<<0,
-                    y: (Math.random()*this.setup.universeSize)<<0
+                    x: -this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0,
+                    y: -this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0
                 }
             });
         };
@@ -150,8 +160,8 @@ var server = {
                 size: 1,
                 material: 64,
                 pos: {
-                    x: (Math.random()*this.setup.universeSize)<<0,
-                    y: (Math.random()*this.setup.universeSize)<<0
+                    x: -this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0,
+                    y: - this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0
                 }
             });
         }
@@ -192,7 +202,13 @@ var server = {
 
         server.players[id] = {
             gameID: gameID,
-            time: server.getServerTime()
+            time: server.getServerTime(),
+            position: {
+                x: 80 + (Math.random()*this.universe.size-80)<<0,
+                y: 40 + (Math.random()*this.universe.size-40)<<0
+            },
+            width: 80,
+            height: 40
         };
 
         client.join(gameID);
@@ -222,7 +238,11 @@ var server = {
         // SEND SETTINGS
         io.to(id).emit('system', {
             cmd: 'server-settings',
-            fps: server.setup.fps
+            fps: server.setup.fps,
+            pos: {
+                x: server.players[id].position.x,
+                y: server.players[id].position.y
+            }
         });
 
         // SEND STATS
@@ -238,12 +258,8 @@ var server = {
     },
 
     removePlayer: function(id){
-        for (var i = 0; i < this.players.length; i++) {
-            if(this.players[i].id === id){
-                this.players.splice(i, 1);
-                i = this.players.length;
-            }
-        };
+
+        delete this.players[id];
 
         console.log(this.getServerTime() + ' Player disconnected [ID: '+id+' ]');
         console.log(this.getServerTime() + ' Total players: '+server.getTotalPlayers());

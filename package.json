@@ -1,0 +1,11 @@
+{
+  "name": "stellar-tales",
+  "description": "A massive multiplayer space simulation game. It uses only text for visual effects so it's highly dependent on players imagination.",
+  "author": "Krzysztof Jankowski <kj@p1x.in>",
+  "dependencies": {
+    "express": ">= 1.2.0",
+    "socket.io": ">= 0.1.0",
+    "idgen": ">= 0.1.0"
+  },
+  "engine": "node 0.4.1"
+}
