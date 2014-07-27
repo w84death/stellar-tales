@@ -31,7 +31,7 @@ var game = {
         game: {
             html: document.getElementById('game'),
             width: 80,
-            height: 40,
+            height: 34,
         },
         log: {
             html: document.getElementById('log'),
@@ -45,12 +45,12 @@ var game = {
         }
     },
     ASCII:{
-        void:       '',
-        planet:     ['.',
-                    '*',
-                    'o'],
-        star:       '@',
-        asteroid:   '!',
+        void:       '<span class="void">.</span>',
+        planet:     ['<span class="planet-1">.</span>',
+                    '<span class="planet-2">*</span>',
+                    '<span class="planet-3">o</span>'],
+        star:       '<span class="star">@</span>',
+        asteroid:   '<span class="asteroid">!</span>',
 
     },
     gameLog: [{
@@ -70,45 +70,87 @@ var game = {
         label: 'REQUEST GAME-ID',
         cmd: 'debug-game-id',
         to: 'server'
+    },{
+        label: 'MOVE UP',
+        cmd: 'move-up',
+        to: 'server'
+    },{
+        label: 'MOVE DOWN',
+        cmd: 'move-down',
+        to: 'server'
+    },{
+        label: 'MOVE RIGHT',
+        cmd: 'move-right',
+        to: 'server'
+    },{
+        label: 'MOVE LEFT',
+        cmd: 'move-left',
+        to: 'server'
     }],
-    position:{
+    pos:{
         x: 0,
         y: 0,
     },
     universe: {
         static: {
-            stars: [],
-            planets: [],
-            gates: []
+            stars: {},
+            planets: {},
+            gates: {}
         },
         dynamic: {
-            asteroids: [],
-            ships: [],
+            asteroids: {},
+            ships: {},
         }
     },
+    localUniverse: [],
 
     init: function(){
         // SET SOCKETS EVENTS
         this.setSockets();
-
+        this.setKeyboardEvents();
         this.render({
             game: true,
             command: true,
             gameLog: true
         });
 
-        // SEND CLIENT POSITION
-        /*
-        socket.emit('game', {
-            cmd: 'set-pos',
-            x: game.position.x,
-            y: game.position.y,
-            w: game.UI.game.width,
-            h: game.UI.game.height
-        });*/
+        // PREPARE EMPTY VIEWABLE (LOCAL) UNIVERSE
+        this.prepareLocalUni();
 
         // START ENGINE
         this.loop();
+    },
+
+    setKeyboardEvents: function(){
+        // moving view position
+        document.onkeydown = function() {
+            switch (window.event.keyCode) {
+                case 37:
+                    game.buttonPressed({
+                        do: 'move-left',
+                        to: 'server'
+                    });
+                    break;
+                case 38:
+                    game.buttonPressed({
+                        do: 'move-up',
+                        to: 'server'
+                    });
+                    break;
+                case 39:
+                    game.buttonPressed({
+                        do: 'move-right',
+                        to: 'server'
+                    });
+                    break;
+                case 40:
+                    game.buttonPressed({
+                        do: 'move-down',
+                        to: 'server'
+                    });
+                    break;
+            }
+        };
     },
 
     setSockets: function(){
@@ -143,8 +185,8 @@ var game = {
             // SETTINGS
             if(data.cmd == 'server-settings'){
                 game.setup.fps = data.fps;
-                game.position.x = data.pos.x;
-                game.position.y = data.pos.y;
+                game.pos.x = data.pos.x;
+                game.pos.y = data.pos.y;
             }
 
             // STATS
@@ -173,9 +215,53 @@ var game = {
         // THE GAME EVENT
         socket.on('game', function(data){
             if(data.type = 'uni-chunk'){
-                game.universe = data.data;
+                game.pos.x = data.pos.x;
+                game.pos.y = data.pos.y;
+                game.render({
+                    command: true
+                });
+
+                game.universe.static = data.data;
+                game.updateLocalUni();
             }
         });
+    },
+
+    prepareLocalUni: function(){
+        this.localUniverse = [this.UI.game.width];
+        for (var x = 0; x < this.UI.game.width; x++) {
+            this.localUniverse[x] = [this.UI.game.height];
+            for (var y = 0; y < this.UI.game.height; y++) {
+                this.localUniverse[x][y] = this.ASCII.void;
+            };
+        };
+    },
+
+    clearLocalUni: function(){
+        for (var x = 0; x < this.UI.game.width; x++) {
+            for (var y = 0; y < this.UI.game.height; y++) {
+                this.localUniverse[x][y] = this.ASCII.void;
+            };
+        };
+    },
+
+    updateLocalUni: function(){
+        this.clearLocalUni();
+        for (var key in this.universe.static.stars) {
+            var star = this.universe.static.stars[key],
+                localX = star.pos.x - this.pos.x,
+                localY = star.pos.y - this.pos.y;
+            this.localUniverse[localX][localY] = this.ASCII.star;
+        }
+        for (var key in this.universe.static.planets) {
+            var planet = this.universe.static.planets[key],
+                localX = planet.pos.x - this.pos.x,
+                localY = planet.pos.y - this.pos.y;
+            this.localUniverse[localX][localY] = this.ASCII.planet[planet.size-1];
+        }
+        this.render({
+            game:true
+        })
     },
 
     drawHeader: function(ui, title){
@@ -237,20 +323,15 @@ var game = {
             bufferLine += this.drawHeader('game','Stellar Tales - game world');
 
             // GAME
-            /*
-            for (var y = 0; y < game.height; y++) {
-                for (var x = 0; x < game.width; x++) {
-                    var t = game.ASCII.void;
-                    for (var i = 0; i < game.universe.length; i++) {
-                        if(game.universe[i].x === x && game.universe[i].y === y){
-                            t = game.universe[i].ASCII;
-                        }
-                    };
-                    bufferLine += t;
+            if(this.localUniverse.length>0){
+                for (var y = 0; y < this.UI.game.height; y++) {
+                    for (var x = 0; x < this.UI.game.width; x++) {
+                        bufferLine += this.localUniverse[x][y];
+                    }
+                    bufferLine += '<br/>';
                 }
-                bufferLine += '<br/>';
             }
-            */
+
             this.UI.game.html.innerHTML = bufferLine;
         }
 
@@ -263,7 +344,7 @@ var game = {
             bufferLine += 'Players online: <em>' + this.stats.players + '</em><br/>';
             bufferLine += 'Server time: <em>'+ this.serverTime +'</em><br/>';
             bufferLine += 'Universe:<br/>';
-            bufferLine += '- view position: <em>'+this.position.x+':'+this.position.y+'</em><br/>';
+            bufferLine += '- view position: <em>'+this.pos.x+':'+this.pos.y+'</em><br/>';
             bufferLine += '- created at: <em>' + this.stats.universeTime + '</em><br/>';
             bufferLine += '- planets: <em>' + this.stats.planets + '</em><br/>';
             bufferLine += '- stars: <em>' + this.stats.stars + '</em><br/>';

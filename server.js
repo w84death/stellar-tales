@@ -17,7 +17,7 @@ var fs          =   require('fs'),
     app         =   express(),
     http        =   require('http').Server(app),
     io          =   require('socket.io')(http),
-    idgen       =   require('idgen');;
+    idgen       =   require('idgen');
 
 var server = {
 
@@ -26,9 +26,10 @@ var server = {
         synchroTime: 10,
         saveUniverseTime: 10*60,
         universeDevMode: true,
-        universeSize: 100,
+        universeSize: 512,
     },
     players: {},
+    gameIDs: {},
     time: new Date(),
     tick: 0,
     universe: {},
@@ -59,6 +60,8 @@ var server = {
             });
 
             client.on('system', function(data){
+                var gameID = server.players[client.id].gameID;
+
                 if(data.cmd == 'change-game-id'){
                     server.setPlayerGameID({
                         id: client.id,
@@ -72,42 +75,49 @@ var server = {
                         log: 'Successfully changed gameID'
                     });
 
+                    server.sendUniChunk(client.id);
+
                 }
                 if(data.cmd == 'debug-ping'){
-                    io.to(server.players[client.id].gameID).emit('log', {
+                    io.to(gameID).emit('log', {
                         time: server.getServerTime(),
                         log: 'pong!'
                     });
                     console.log(server.getServerTime() + ' Debug: ping-pong sent to [ID: ' + client.id+ ' ]');
                 }
                 if(data.cmd == 'debug-uuid'){
-                    io.to(server.players[client.id].gameID).emit('log', {
+                    io.to(gameID).emit('log', {
                         time: server.getServerTime(),
                         log: 'Your UUID is ' + client.id
                     });
                     console.log(server.getServerTime() + ' Debug: client requested UUID [ID: ' + client.id+ ' ]');
                 }
                 if(data.cmd == 'debug-game-id'){
-                    io.to(server.players[client.id].gameID).emit('log', {
+                    io.to(gameID).emit('log', {
                         time: server.getServerTime(),
                         log: 'Your gameID is ' + server.players[client.id].gameID
                     });
                     console.log(server.getServerTime() + ' Debug: client requested gameID ' + server.players[client.id].gameID);
                 }
+                if(data.cmd == 'move-up'){
+                    server.gameIDs[gameID].pos.y -= 4;
+                    server.sendUniChunk(client.id);
+                }
+                if(data.cmd == 'move-down'){
+                    server.gameIDs[gameID].pos.y += 4;
+                    server.sendUniChunk(client.id);
+                }
+                if(data.cmd == 'move-left'){
+                    server.gameIDs[gameID].pos.x -= 4;
+                    server.sendUniChunk(client.id);
+                }
+                if(data.cmd == 'move-right'){
+                    server.gameIDs[gameID].pos.x += 4;
+                    server.sendUniChunk(client.id);
+                }
             });
 
             client.on('game', function(data){
-                // request for universe visible chunk
-                if(data.cmd == 'set-pos'){
-                    var player = server.players[client.id];
-                    player.position = {
-                        x: data.x,
-                        y: data.y,
-                    };
-                    player.width = data.w;
-                    player.height = data.h;
-                    console.log(server.getServerTime() + ' Player [gameID: '+player.gameID+' ] set position at ' + player.position.x + ':' + player.position.y +' and view size ' +player.width+'x'+player.height);
-                }
 
             });
         });
@@ -126,6 +136,7 @@ var server = {
         var devUni = {
             // time of univers creation
             time: this.getServerDate(),
+            size: this.setup.universeSize,
 
             // all static entities
             // server will only
@@ -144,7 +155,7 @@ var server = {
         };
 
         // CREATE STARTS
-        for (var i = 0; i < 4 + (Math.random()*12)<<0; i++) {
+        for (var i = 0; i < 512 + (Math.random()*1024)<<0; i++) {
             devUni.static.stars.push({
                 energy: 1024,
                 pos: {
@@ -155,9 +166,9 @@ var server = {
         };
 
         // CERATE PLANETS
-        for (var i = 0; i < 64 + (Math.random()*128)<<0; i++) {
+        for (var i = 0; i < 2048 + (Math.random()*4096)<<0; i++) {
             devUni.static.planets.push({
-                size: 1,
+                size: 1+(Math.random()*3)<<0,
                 material: 64,
                 pos: {
                     x: -this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0,
@@ -193,20 +204,33 @@ var server = {
     },
 
     setPlayerGameID: function(params){
-        this.players[params.id].gameID = params.gameID;
-        console.log(this.getServerTime() + ' player changed gameID [ID: '+params.id+' ] => [gameID: '+params.gameID+' ]');
+        var oldGameID = this.players[params.id].gameID,
+            newGameID = params.gameID;
+
+        // change gameID
+        this.players[params.id].gameID = newGameID;
+
+        // if we dont have new gameID, copy from data from old gameID
+        if(!this.gameIDs[newGameID]){
+            this.gameIDs[newGameID] = this.gameIDs[oldGameID];
+        }
+
+        console.log(this.getServerTime() + ' player changed gameID [ID: '+params.id+' ] => [gameID: '+newGameID+' ]');
     },
 
     addPlayer: function(id, client){
         var gameID = idgen(20);
 
-        server.players[id] = {
-            gameID: gameID,
-            time: server.getServerTime(),
-            position: {
-                x: 80 + (Math.random()*this.universe.size-80)<<0,
-                y: 40 + (Math.random()*this.universe.size-40)<<0
+        this.gameIDs[gameID] = {
+            pos: {
+                x: (-this.universe.size + 80) + (Math.random()*(this.universe.size-80))<<0,
+                y: (-this.universe.size + 40) + (Math.random()*(this.universe.size-40))<<0
             },
+        }
+
+        this.players[id] = {
+            gameID: gameID,
+            time: this.getServerTime(),
             width: 80,
             height: 40
         };
@@ -214,7 +238,8 @@ var server = {
         client.join(gameID);
 
         console.log(this.getServerTime() + ' Player connected [ID: '+id+' ] [gameID: '+gameID+' ]');
-        console.log(this.getServerTime() + ' Total players: '+server.getTotalPlayers());
+        console.log(this.getServerTime() + ' Player pos '+this.gameIDs[this.players[id].gameID].pos.x+':'+this.gameIDs[this.players[id].gameID].pos.y);
+        console.log(this.getServerTime() + ' Total players: '+this.getTotalPlayers());
 
         // SENT TO EVERYINE
 
@@ -240,8 +265,8 @@ var server = {
             cmd: 'server-settings',
             fps: server.setup.fps,
             pos: {
-                x: server.players[id].position.x,
-                y: server.players[id].position.y
+                x: server.gameIDs[gameID].pos.x,
+                y: server.gameIDs[gameID].pos.y
             }
         });
 
@@ -254,6 +279,10 @@ var server = {
             totalPlayers: server.getTotalPlayers(),
             serverTime: server.getServerTime()
         });
+
+        // SEND UNIVERSE CHUNK
+        this.sendUniChunk(id);
+
         return gameID;
     },
 
@@ -275,6 +304,46 @@ var server = {
         });
 
         return false;
+    },
+
+    sendUniChunk: function(id){
+        var chunk = {
+                stars: [],
+                planets: [],
+                gates: []
+            },
+            gameID = this.players[id].gameID,
+            player = this.gameIDs[gameID],
+            viewSize = {
+                w: this.players[id].width,
+                h: this.players[id].height
+            };
+
+        for (var key in this.universe.static.stars) {
+            var star = this.universe.static.stars[key];
+            if(star.pos.x >= player.pos.x && star.pos.x < (player.pos.x + viewSize.w) && star.pos.y >= player.pos.y && (star.pos.y < player.pos.y + viewSize.h)){
+                chunk.stars.push(star);
+            }
+        }
+
+        for (var key in this.universe.static.planets) {
+            var planet = this.universe.static.planets[key];
+            if(planet.pos.x >= player.pos.x && planet.pos.x < (player.pos.x + viewSize.w) && planet.pos.y >= player.pos.y && (planet.pos.y < player.pos.y + viewSize.h)){
+                chunk.planets.push(planet);
+            }
+        }
+
+        io.to(gameID).emit('game', {
+            cmd: 'uni-chunk',
+            data: chunk,
+            pos: {
+                x: player.pos.x,
+                y: player.pos.y
+            }
+
+        });
+
+        console.log( server.getServerTime() + ' Send UniChunk '+player.pos.x+':'+player.pos.y);
     },
 
     getTotalPlayers: function(){
