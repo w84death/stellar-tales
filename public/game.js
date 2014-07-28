@@ -247,89 +247,49 @@ var game = {
 
     moogGenerateSynth: function(){
         this.moogLoopNo = 0;
+        this.moogLoops = [];
+        for (var i = 0; i < (12 + (Math.random()*32)<<0); i++) {
 
-        this.moogLoops = [{
-            freq: 300+(Math.random()*100)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 150+(Math.random()*250)<<0,
-            vol: 0.1
-        },{
-            freq: 400+(Math.random()*200)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 150+(Math.random()*250)<<0,
-            vol: 0.1
-        },{
-            freq: 500+(Math.random()*300)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 150+(Math.random()*250)<<0,
-            vol: 0.1
-        },{
-            freq: 800+(Math.random()*200)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-            vol: 0.1
-        },{
-            freq: 300+(Math.random()*100)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 150+(Math.random()*250)<<0,
-            vol: 0.1
-        },{
-            freq: 400+(Math.random()*200)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 150+(Math.random()*250)<<0,
-            vol: 0.1
-        },{
-            freq: 500+(Math.random()*300)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 150+(Math.random()*250)<<0,
-            vol: 0.1
-        },{
-            freq: 800+(Math.random()*200)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-            vol: 0.1
-        }];
+            this.moogLoops.push({
+                freq: 150+(Math.random()*400)<<0,
+                attack: 10,
+                decay: 300+(Math.random()*1400)<<0,
+                vol: 0.1,
+                pause: Math.random()*10 < 5
+            });
+
+        };
 
         this.moogLoopNo2 = 0;
-        this.moogLoops2 = [{
-            freq: 30+(Math.random()*80)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-            vol: 0.2
-        },{
-            freq: 30+(Math.random()*120)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-            vol: 0.2
-        },{
-            freq: 50+(Math.random()*200)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-            vol: 0.2
-        },{
-            freq: 50+(Math.random()*100)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-            vol: 0.2
-        }];
+        this.moogLoops2 = [];
+        for (var i = 0; i < (8 + (Math.random()*12)<<0); i++) {
+
+            this.moogLoops2.push({
+                freq: 10+(Math.random()*100)<<0,
+                attack: 10,
+                decay: 250+(Math.random()*250)<<0,
+                vol: 0.2
+            });
+
+        };
     },
 
     moogLoop: function(){
         game.moogLoopNo++;
         if(game.moogLoopNo >= game.moogLoops.length) game.moogLoopNo = 0;
         game.moog(game.moogLoops[game.moogLoopNo]);
-        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop, 220);
+        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop, 200);
     },
 
     moogLoop2: function(){
         game.moogLoopNo2++;
         if(game.moogLoopNo2 >= game.moogLoops2.length) game.moogLoopNo2 = 0;
         game.moog(game.moogLoops2[game.moogLoopNo2]);
-        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 440);
+        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 400);
     },
 
     moog: function(params){
-
+        if(params.pause) return;
         var vol = params.vol || 0.2,
             attack = params.attack || 20,
             decay = params.decay || 300,
@@ -544,4 +504,13 @@ var game = {
 
 };
 
+function shuffleArray(array) {
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+    return array;
+}
 game.init();
