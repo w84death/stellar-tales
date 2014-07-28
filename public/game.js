@@ -248,7 +248,7 @@ var game = {
     moogGenerateSynth: function(){
         this.moogLoopNo = 0;
         this.moogLoops = [];
-        for (var i = 0; i < (12 + (Math.random()*32)<<0); i++) {
+        for (var i = 0; i < (24 + (Math.random()*24)<<0); i++) {
 
             this.moogLoops.push({
                 freq: 150+(Math.random()*400)<<0,
@@ -262,10 +262,10 @@ var game = {
 
         this.moogLoopNo2 = 0;
         this.moogLoops2 = [];
-        for (var i = 0; i < (8 + (Math.random()*12)<<0); i++) {
+        for (var i = 0; i < (4 + (Math.random()*8)<<0); i++) {
 
             this.moogLoops2.push({
-                freq: 10+(Math.random()*100)<<0,
+                freq: 10+(Math.random()*80)<<0,
                 attack: 10,
                 decay: 250+(Math.random()*250)<<0,
                 vol: 0.2
@@ -285,7 +285,7 @@ var game = {
         game.moogLoopNo2++;
         if(game.moogLoopNo2 >= game.moogLoops2.length) game.moogLoopNo2 = 0;
         game.moog(game.moogLoops2[game.moogLoopNo2]);
-        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 400);
+        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 800);
     },
 
     moog: function(params){
