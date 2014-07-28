@@ -26,7 +26,8 @@ var game = {
         starts: 'N/A'
     },
     serverTime: 'N/A',
-    audio: new window.webkitAudioContext(),
+    audio: new (window.AudioContext || window.webkitAudioContext)(),
+
     // UI
     UI:{
         game: {
@@ -126,8 +127,9 @@ var game = {
 
     setKeyboardEvents: function(){
         // moving view position
-        document.onkeydown = function() {
-            switch (window.event.keyCode) {
+        document.onkeydown = function(e) {
+            e = e || window.event;
+            switch (e.keyCode) {
                 case 37:
                     game.buttonPressed({
                         do: 'move-left',
