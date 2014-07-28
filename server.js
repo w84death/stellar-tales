@@ -25,7 +25,7 @@ var server = {
         fps: 1,
         synchroTime: 10,
         saveUniverseTime: 10*60,
-        universeDevMode: true,
+        universeDevMode: false,
         universeSize: 512,
     },
     players: {},

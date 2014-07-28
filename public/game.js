@@ -57,6 +57,8 @@ var game = {
         log: 'Welcome to the <strong>Stellar Tales</strong>'
     },{
         log: 'Game by Krzysztof Jankowski, &copy; 2014 P1X'
+    },{
+        log: 'Use <strong>arrows to move</strong> through the universe'
     }],
     commandCenter: [{
         label: 'SEND PING',
