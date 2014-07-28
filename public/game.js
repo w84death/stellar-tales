@@ -16,6 +16,7 @@ var game = {
     setup:{
         fps:1,
         gameLogLength: 12,
+        playMoogSynth: false,
     },
     gameID: localStorage.getItem("stellar-tales-game-id") || false,
     stats: {
@@ -25,7 +26,7 @@ var game = {
         starts: 'N/A'
     },
     serverTime: 'N/A',
-
+    audio: new window.webkitAudioContext(),
     // UI
     UI:{
         game: {
@@ -151,6 +152,13 @@ var game = {
                         to: 'server'
                     });
                     break;
+                case 65:
+                    game.setup.playMoogSynth = !game.setup.playMoogSynth;
+                    if(game.setup.playMoogSynth) game.moogInit();
+                    break;
+                case 83:
+                    game.moogGenerateSynth();
+                    break;
             }
         };
     },
@@ -227,6 +235,91 @@ var game = {
                 game.updateLocalUni();
             }
         });
+    },
+
+    moogInit: function(){
+        this.moogGenerateSynth();
+        this.moogLoop();
+        this.moogLoop2();
+    },
+
+    moogGenerateSynth: function(){
+        this.moogLoopNo = 0;
+        this.moogLoops = [{
+            freq: 300+(Math.random()*100)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+        },{
+            freq: 400+(Math.random()*200)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+        },{
+            freq: 500+(Math.random()*200)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+        }];
+
+        this.moogLoopNo2 = 0;
+        this.moogLoops2 = [{
+            freq: 50+(Math.random()*100)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+        },{
+            freq: 50+(Math.random()*300)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+        },{
+            freq: 100+(Math.random()*300)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+        },{
+            freq: 100+(Math.random()*300)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+        }];
+    },
+
+    moogLoop: function(){
+        game.moogLoopNo++;
+        if(game.moogLoopNo >= game.moogLoops.length) game.moogLoopNo = 0;
+        game.moog(game.moogLoops[game.moogLoopNo]);
+        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop, 1000/4);
+    },
+
+    moogLoop2: function(){
+        game.moogLoopNo2++;
+        if(game.moogLoopNo2 >= game.moogLoops2.length) game.moogLoopNo2 = 0;
+        game.moog(game.moogLoops2[game.moogLoopNo2]);
+        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 1000/2);
+    },
+
+    moog: function(params){
+
+        var attack = params.attack || 20,
+            decay = params.decay || 300,
+            freq = params.freq || 30,
+            gain = this.audio.createGain(),
+            osc = this.audio.createOscillator();
+
+        // GAIN
+        gain.connect(this.audio.destination);
+        gain.gain.setValueAtTime(0, this.audio.currentTime);
+        gain.gain.linearRampToValueAtTime(0.2, this.audio.currentTime + attack / 1000);
+        gain.gain.linearRampToValueAtTime(0, this.audio.currentTime + decay / 1000);
+
+        // OSC
+        osc.frequency.value = freq;
+        osc.type = "square";
+        osc.connect(gain);
+
+        // START
+        osc.start(0);
+
+        setTimeout(function() {
+            osc.stop(0);
+            osc.disconnect(gain);
+            gain.disconnect(game.audio.destination);
+        }, decay)
     },
 
     prepareLocalUni: function(){
@@ -408,7 +501,6 @@ var game = {
 
     loop: function(){
         window.setTimeout(game.loop, 1000/game.setup.fps);
-
         game.render({
             game: true
         });
