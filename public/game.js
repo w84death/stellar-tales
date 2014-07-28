@@ -245,37 +245,70 @@ var game = {
 
     moogGenerateSynth: function(){
         this.moogLoopNo = 0;
+
         this.moogLoops = [{
             freq: 300+(Math.random()*100)<<0,
             attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
+            decay: 150+(Math.random()*250)<<0,
+            vol: 0.1
         },{
             freq: 400+(Math.random()*200)<<0,
             attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
+            decay: 150+(Math.random()*250)<<0,
+            vol: 0.1
         },{
-            freq: 500+(Math.random()*200)<<0,
+            freq: 500+(Math.random()*300)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 150+(Math.random()*250)<<0,
+            vol: 0.1
+        },{
+            freq: 800+(Math.random()*200)<<0,
             attack: 20+(Math.random()*50)<<0,
             decay: 200+(Math.random()*250)<<0,
+            vol: 0.1
+        },{
+            freq: 300+(Math.random()*100)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 150+(Math.random()*250)<<0,
+            vol: 0.1
+        },{
+            freq: 400+(Math.random()*200)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 150+(Math.random()*250)<<0,
+            vol: 0.1
+        },{
+            freq: 500+(Math.random()*300)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 150+(Math.random()*250)<<0,
+            vol: 0.1
+        },{
+            freq: 800+(Math.random()*200)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+            vol: 0.1
         }];
 
         this.moogLoopNo2 = 0;
         this.moogLoops2 = [{
+            freq: 30+(Math.random()*80)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+            vol: 0.2
+        },{
+            freq: 30+(Math.random()*120)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+            vol: 0.2
+        },{
+            freq: 50+(Math.random()*200)<<0,
+            attack: 20+(Math.random()*50)<<0,
+            decay: 200+(Math.random()*250)<<0,
+            vol: 0.2
+        },{
             freq: 50+(Math.random()*100)<<0,
             attack: 20+(Math.random()*50)<<0,
             decay: 200+(Math.random()*250)<<0,
-        },{
-            freq: 50+(Math.random()*300)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-        },{
-            freq: 100+(Math.random()*300)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
-        },{
-            freq: 100+(Math.random()*300)<<0,
-            attack: 20+(Math.random()*50)<<0,
-            decay: 200+(Math.random()*250)<<0,
+            vol: 0.2
         }];
     },
 
@@ -283,19 +316,20 @@ var game = {
         game.moogLoopNo++;
         if(game.moogLoopNo >= game.moogLoops.length) game.moogLoopNo = 0;
         game.moog(game.moogLoops[game.moogLoopNo]);
-        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop, 1000/4);
+        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop, 220);
     },
 
     moogLoop2: function(){
         game.moogLoopNo2++;
         if(game.moogLoopNo2 >= game.moogLoops2.length) game.moogLoopNo2 = 0;
         game.moog(game.moogLoops2[game.moogLoopNo2]);
-        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 1000/2);
+        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 440);
     },
 
     moog: function(params){
 
-        var attack = params.attack || 20,
+        var vol = params.vol || 0.2,
+            attack = params.attack || 20,
             decay = params.decay || 300,
             freq = params.freq || 30,
             gain = this.audio.createGain(),
@@ -304,7 +338,7 @@ var game = {
         // GAIN
         gain.connect(this.audio.destination);
         gain.gain.setValueAtTime(0, this.audio.currentTime);
-        gain.gain.linearRampToValueAtTime(0.2, this.audio.currentTime + attack / 1000);
+        gain.gain.linearRampToValueAtTime(params.vol, this.audio.currentTime + attack / 1000);
         gain.gain.linearRampToValueAtTime(0, this.audio.currentTime + decay / 1000);
 
         // OSC
