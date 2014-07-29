@@ -246,45 +246,48 @@ var game = {
     },
 
     moogGenerateSynth: function(){
-        this.moogLoopNo = 0;
+        this.moogLoopsNoteID = 0;
         this.moogLoops = [];
         for (var i = 0; i < (24 + (Math.random()*24)<<0); i++) {
 
             this.moogLoops.push({
                 freq: 150+(Math.random()*400)<<0,
                 attack: 10,
-                decay: 300+(Math.random()*1400)<<0,
-                vol: 0.1,
-                pause: Math.random()*10 < 5
+                decay: 700+(Math.random()*700)<<0,
+                oscilator: 1,
+                pause: Math.random()*10 < 5,
+                vol: 0.2
             });
 
         };
 
-        this.moogLoopNo2 = 0;
-        this.moogLoops2 = [];
+        this.moogLoopBassNoteID = 0;
+        this.moogLoopsBass = [];
         for (var i = 0; i < (4 + (Math.random()*8)<<0); i++) {
 
-            this.moogLoops2.push({
+            this.moogLoopsBass.push({
                 freq: 10+(Math.random()*80)<<0,
                 attack: 10,
                 decay: 250+(Math.random()*250)<<0,
-                vol: 0.2
+                oscilator: 1,
+                pause: Math.random()*10 < 3,
+                vol: 0.1
             });
 
         };
     },
 
     moogLoop: function(){
-        game.moogLoopNo++;
-        if(game.moogLoopNo >= game.moogLoops.length) game.moogLoopNo = 0;
-        game.moog(game.moogLoops[game.moogLoopNo]);
+        game.moogLoopsNoteID++;
+        if(game.moogLoopsNoteID >= game.moogLoops.length) game.moogLoopsNoteID = 0;
+        game.moog(game.moogLoops[game.moogLoopsNoteID]);
         if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop, 200);
     },
 
     moogLoop2: function(){
-        game.moogLoopNo2++;
-        if(game.moogLoopNo2 >= game.moogLoops2.length) game.moogLoopNo2 = 0;
-        game.moog(game.moogLoops2[game.moogLoopNo2]);
+        game.moogLoopBassNoteID++;
+        if(game.moogLoopBassNoteID >= game.moogLoopsBass.length) game.moogLoopBassNoteID = 0;
+        game.moog(game.moogLoopsBass[game.moogLoopBassNoteID]);
         if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 800);
     },
 
@@ -294,6 +297,7 @@ var game = {
             attack = params.attack || 20,
             decay = params.decay || 300,
             freq = params.freq || 30,
+            oscilator = params.oscilator || 0;
             gain = this.audio.createGain(),
             osc = this.audio.createOscillator();
 
@@ -305,7 +309,7 @@ var game = {
 
         // OSC
         osc.frequency.value = freq;
-        osc.type = "square";
+        osc.type = oscilator; //"square";
         osc.connect(gain);
 
         // START
