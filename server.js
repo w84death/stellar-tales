@@ -23,13 +23,12 @@ var server = {
 
     setup: {
         fps: 1,
-        synchroTime: 10,
-        saveUniverseTime: 10*60,
+        synchroTime: 10, // 10sec
+        saveUniverseTime: 10*60, // 10min
         universeDevMode: false,
-        universeSize: 512,
+        universeSize: 512, // 512 from 0:0 in each direction so 1024*1024
     },
     players: {},
-    gameIDs: {},
     time: new Date(),
     tick: 0,
     universe: {},
@@ -100,19 +99,19 @@ var server = {
                     console.log(server.getServerTime() + ' Debug: client requested gameID ' + server.players[client.id].gameID);
                 }
                 if(data.cmd == 'move-up'){
-                    server.gameIDs[gameID].pos.y -= 1;
+                    server.universe.gameIDs[gameID].pos.y -= 1;
                     server.sendUniChunk(client.id);
                 }
                 if(data.cmd == 'move-down'){
-                    server.gameIDs[gameID].pos.y += 1;
+                    server.universe.gameIDs[gameID].pos.y += 1;
                     server.sendUniChunk(client.id);
                 }
                 if(data.cmd == 'move-left'){
-                    server.gameIDs[gameID].pos.x -= 1;
+                    server.universe.gameIDs[gameID].pos.x -= 1;
                     server.sendUniChunk(client.id);
                 }
                 if(data.cmd == 'move-right'){
-                    server.gameIDs[gameID].pos.x += 1;
+                    server.universe.gameIDs[gameID].pos.x += 1;
                     server.sendUniChunk(client.id);
                 }
             });
@@ -151,13 +150,16 @@ var server = {
             dynamic: {
                 asteroids: [],
                 ships: [],
-            }
+            },
+
+            gameIDs: {},
         };
 
         // CREATE STARTS
         for (var i = 0; i < 512 + (Math.random()*1024)<<0; i++) {
             devUni.static.stars.push({
-                energy: 1024,
+                name: 'Star',
+                energy: 1024+(Math.random()*1024)<<0,
                 pos: {
                     x: -this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0,
                     y: -this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0
@@ -167,9 +169,11 @@ var server = {
 
         // CERATE PLANETS
         for (var i = 0; i < 2048 + (Math.random()*4096)<<0; i++) {
+            var size = 1+(Math.random()*3)<<0
             devUni.static.planets.push({
-                size: 1+(Math.random()*3)<<0,
-                material: 64,
+                name: 'Planet',
+                size: size,
+                material: 64+(Math.random()*(256*size))<<0,
                 pos: {
                     x: -this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0,
                     y: - this.setup.universeSize + (Math.random()*this.setup.universeSize*2)<<0
@@ -179,6 +183,7 @@ var server = {
 
         //
         server.universe = devUni;
+        server.saveUniverse();
     },
 
     loadUniverse: function(){
@@ -211,8 +216,8 @@ var server = {
         this.players[params.id].gameID = newGameID;
 
         // if we dont have new gameID, copy from data from old gameID
-        if(!this.gameIDs[newGameID]){
-            this.gameIDs[newGameID] = this.gameIDs[oldGameID];
+        if(!this.universe.gameIDs[newGameID]){
+            this.universe.gameIDs[newGameID] = this.universe.gameIDs[oldGameID];
         }
 
         console.log(this.getServerTime() + ' player changed gameID [ID: '+params.id+' ] => [gameID: '+newGameID+' ]');
@@ -221,11 +226,11 @@ var server = {
     addPlayer: function(id, client){
         var gameID = idgen(20);
 
-        this.gameIDs[gameID] = {
+        this.universe.gameIDs[gameID] = {
             pos: {
                 x: (-this.universe.size + 80) + (Math.random()*(this.universe.size-80))<<0,
                 y: (-this.universe.size + 40) + (Math.random()*(this.universe.size-40))<<0
-            },
+            }
         }
 
         this.players[id] = {
@@ -238,7 +243,7 @@ var server = {
         client.join(gameID);
 
         console.log(this.getServerTime() + ' Player connected [ID: '+id+' ] [gameID: '+gameID+' ]');
-        console.log(this.getServerTime() + ' Player pos '+this.gameIDs[this.players[id].gameID].pos.x+':'+this.gameIDs[this.players[id].gameID].pos.y);
+        console.log(this.getServerTime() + ' Player pos '+this.universe.gameIDs[this.players[id].gameID].pos.x+':'+this.universe.gameIDs[this.players[id].gameID].pos.y);
         console.log(this.getServerTime() + ' Total players: '+this.getTotalPlayers());
 
         // SENT TO EVERYINE
@@ -265,8 +270,8 @@ var server = {
             cmd: 'server-settings',
             fps: server.setup.fps,
             pos: {
-                x: server.gameIDs[gameID].pos.x,
-                y: server.gameIDs[gameID].pos.y
+                x: server.universe.gameIDs[gameID].pos.x,
+                y: server.universe.gameIDs[gameID].pos.y
             }
         });
 
@@ -307,22 +312,34 @@ var server = {
     },
 
     sendUniChunk: function(id){
+        // this needs refactor for speed
+        // send full chunk at fresh player
+        // or send just one line if player moves in some direction
         var chunk = {
                 stars: [],
                 planets: [],
                 gates: []
             },
             gameID = this.players[id].gameID,
-            player = this.gameIDs[gameID],
+            player = this.universe.gameIDs[gameID],
             viewSize = {
                 w: this.players[id].width,
                 h: this.players[id].height
-            };
+            },
+            aim = {
+                info: false,
+                x: player.pos.x + ((viewSize.w*0.5)<<0),
+                y: player.pos.y + ((viewSize.h*0.5)<<0)-3
+            }
+
 
         for (var key in this.universe.static.stars) {
             var star = this.universe.static.stars[key];
             if(star.pos.x >= player.pos.x && star.pos.x < (player.pos.x + viewSize.w) && star.pos.y >= player.pos.y && (star.pos.y < player.pos.y + viewSize.h)){
                 chunk.stars.push(star);
+                if(star.pos.x === aim.x && star.pos.y === aim.y){
+                    aim.info = star;
+                }
             }
         }
 
@@ -330,6 +347,9 @@ var server = {
             var planet = this.universe.static.planets[key];
             if(planet.pos.x >= player.pos.x && planet.pos.x < (player.pos.x + viewSize.w) && planet.pos.y >= player.pos.y && (planet.pos.y < player.pos.y + viewSize.h)){
                 chunk.planets.push(planet);
+                if(planet.pos.x === aim.x && planet.pos.y === aim.y){
+                    aim.info = planet;
+                }
             }
         }
 
@@ -339,8 +359,8 @@ var server = {
             pos: {
                 x: player.pos.x,
                 y: player.pos.y
-            }
-
+            },
+            info: aim.info
         });
 
         console.log( server.getServerTime() + ' Send UniChunk '+player.pos.x+':'+player.pos.y);

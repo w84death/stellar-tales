@@ -15,8 +15,8 @@ var game = {
 
     setup:{
         fps:1,
-        gameLogLength: 12,
-        playMoogSynth: false,
+        gameLogLength: 22,
+        soundSynth: true,
     },
     gameID: localStorage.getItem("stellar-tales-game-id") || false,
     stats: {
@@ -43,6 +43,7 @@ var game = {
         },
         command: {
             html: document.getElementById('command'),
+            title: 'Info',
             width: 30,
             height: 20,
         }
@@ -64,35 +65,7 @@ var game = {
     },{
         log: 'Use <strong>arrows to move</strong> through the universe'
     }],
-    commandCenter: [{
-        label: 'SEND PING',
-        cmd: 'debug-ping',
-        to: 'server'
-    },{
-        label: 'REQUEST UUID',
-        cmd: 'debug-uuid',
-        to: 'server'
-    },{
-        label: 'REQUEST GAME-ID',
-        cmd: 'debug-game-id',
-        to: 'server'
-    },{
-        label: 'MOVE UP',
-        cmd: 'move-up',
-        to: 'server'
-    },{
-        label: 'MOVE DOWN',
-        cmd: 'move-down',
-        to: 'server'
-    },{
-        label: 'MOVE RIGHT',
-        cmd: 'move-right',
-        to: 'server'
-    },{
-        label: 'MOVE LEFT',
-        cmd: 'move-left',
-        to: 'server'
-    }],
+    commandCenter: [],
     pos:{
         x: 0,
         y: 0,
@@ -163,11 +136,11 @@ var game = {
                     });
                     break;
                 case 65:
-                    game.setup.playMoogSynth = !game.setup.playMoogSynth;
-                    if(game.setup.playMoogSynth) game.moogInit();
+                    //game.setup.soundSynth = !game.setup.soundSynth;
+                    if(game.setup.soundSynth) game.moogInit();
                     break;
                 case 83:
-                    game.moogGenerateSynth();
+                    if(game.setup.soundSynth) game.moogGenerateSynth();
                     break;
             }
         };
@@ -241,6 +214,40 @@ var game = {
                     command: true
                 });
 
+                console.log(data.info)
+                if(data.info){
+                    game.gameLog.push({
+                        log: 'You aimed at <em>'+ data.info.name+'</em>' + (data.info.size? ' of <em>size '+data.info.size+'</em>': '')
+                    });
+
+                    if(data.info.energy){
+                        game.gameLog.push({
+                            log: 'It has <em>'+ data.info.energy +' energy </em>'
+                        });
+                    }
+
+                    if(data.info.material){
+                        game.gameLog.push({
+                            log: 'It has <em>'+ (data.info.material) + ' material</em>'
+                        });
+                    }
+
+                    game.render({
+                        gameLog: true
+                    });
+
+                    game.moog({
+                        freq: 300,
+                        attack: 50,
+                        decay: 200,
+                        oscilator: 2,
+                        vol: 0.2
+                    });
+                }
+
+                // this needs refactor for speed
+                // full chunk for fresh load
+                // one line for move
                 game.universe.static = data.data;
                 game.updateLocalUni();
             }
@@ -289,14 +296,14 @@ var game = {
         game.moogLoopsNoteID++;
         if(game.moogLoopsNoteID >= game.moogLoops.length) game.moogLoopsNoteID = 0;
         game.moog(game.moogLoops[game.moogLoopsNoteID]);
-        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop, 200);
+        if(game.setup.soundSynth) window.setTimeout(game.moogLoop, 200);
     },
 
     moogLoop2: function(){
         game.moogLoopBassNoteID++;
         if(game.moogLoopBassNoteID >= game.moogLoopsBass.length) game.moogLoopBassNoteID = 0;
         game.moog(game.moogLoopsBass[game.moogLoopBassNoteID]);
-        if(game.setup.playMoogSynth) window.setTimeout(game.moogLoop2, 800);
+        if(game.setup.soundSynth) window.setTimeout(game.moogLoop2, 800);
     },
 
     moog: function(params){
@@ -453,21 +460,28 @@ var game = {
         if(params.command){
             // STATS
             bufferLine = '';
-            bufferLine += this.drawHeader('command','Info');
+            bufferLine += this.drawHeader('command',this.UI.command.title);
+            bufferLine += 'Position: <em>'+(this.pos.x+((this.UI.game.width*0.5)<<0))+':'+(this.pos.y+((this.UI.game.height*0.5)<<0))+'</em><br/>';
+            bufferLine += '<br/>';
+            bufferLine += '<br/>';
+            // COMMAND
+            bufferLine += this.drawHeader('command','Command Center');
+            bufferLine += '<br/>';
+            bufferLine += '<br/>';
+            for (var i = 0; i < this.commandCenter.length; i++) {
+                bufferLine += '[<span class="button" data-do="'+this.commandCenter[i].cmd+'" data-to="'+this.commandCenter[i].to+'">'+this.commandCenter[i].label+'</span>]<br/>';
+            };
+
+            // DEBUG
+            bufferLine += this.drawHeader('command','Debug info');
             bufferLine += 'gameID: [<span class="button" data-do="show-game-id">SHOW</span>] [<span class="button" data-do="change-game-id">CHANGE</span>]<br/>';
             bufferLine += 'Players online: <em>' + this.stats.players + '</em><br/>';
             bufferLine += 'Server time: <em>'+ this.serverTime +'</em><br/>';
             bufferLine += 'Universe:<br/>';
-            bufferLine += '- view position: <em>'+this.pos.x+':'+this.pos.y+'</em><br/>';
             bufferLine += '- created at: <em>' + this.stats.universeTime + '</em><br/>';
             bufferLine += '- planets: <em>' + this.stats.planets + '</em><br/>';
             bufferLine += '- stars: <em>' + this.stats.stars + '</em><br/>';
 
-            // COMMAND
-            bufferLine += this.drawHeader('command','Command Center');
-            for (var i = 0; i < this.commandCenter.length; i++) {
-                bufferLine += '[<span class="button" data-do="'+this.commandCenter[i].cmd+'" data-to="'+this.commandCenter[i].to+'">'+this.commandCenter[i].label+'</span>]<br/>';
-            };
             this.UI.command.html.innerHTML = bufferLine;
         }
 
