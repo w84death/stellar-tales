@@ -34,6 +34,7 @@ var game = {
             html: document.getElementById('game'),
             width: 80,
             height: 34,
+            aim: true,
         },
         log: {
             html: document.getElementById('log'),
@@ -53,6 +54,7 @@ var game = {
                     '<span class="planet-3">o</span>'],
         star:       '<span class="star">@</span>',
         asteroid:   '<span class="asteroid">!</span>',
+        aim:        ['<span class="aim">-</span>','<span class="aim">|</span>']
 
     },
     gameLog: [{
@@ -152,6 +154,12 @@ var game = {
                     game.buttonPressed({
                         do: 'move-down',
                         to: 'server'
+                    });
+                    break;
+                case 32:
+                    game.UI.game.aim = !game.UI.game.aim;
+                    game.render({
+                        game:true
                     });
                     break;
                 case 65:
@@ -421,7 +429,18 @@ var game = {
             if(this.localUniverse.length>0){
                 for (var y = 0; y < this.UI.game.height; y++) {
                     for (var x = 0; x < this.UI.game.width; x++) {
-                        bufferLine += this.localUniverse[x][y];
+                        if(!game.UI.game.aim){
+                            bufferLine += this.localUniverse[x][y];
+                        }else{
+                            if(y == (this.UI.game.height*0.5)<<0 && x !== (this.UI.game.width*0.5)<<0 && this.localUniverse[x][y] == this.ASCII.void){
+                                bufferLine += this.ASCII.aim[0];
+                            }else
+                            if(y !== (this.UI.game.height*0.5)<<0 && x == (this.UI.game.width*0.5)<<0 && this.localUniverse[x][y] == this.ASCII.void){
+                                bufferLine += this.ASCII.aim[1];
+                            }else{
+                                bufferLine += this.localUniverse[x][y];
+                            }
+                        }
                     }
                     bufferLine += '<br/>';
                 }

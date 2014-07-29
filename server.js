@@ -100,19 +100,19 @@ var server = {
                     console.log(server.getServerTime() + ' Debug: client requested gameID ' + server.players[client.id].gameID);
                 }
                 if(data.cmd == 'move-up'){
-                    server.gameIDs[gameID].pos.y -= 4;
+                    server.gameIDs[gameID].pos.y -= 1;
                     server.sendUniChunk(client.id);
                 }
                 if(data.cmd == 'move-down'){
-                    server.gameIDs[gameID].pos.y += 4;
+                    server.gameIDs[gameID].pos.y += 1;
                     server.sendUniChunk(client.id);
                 }
                 if(data.cmd == 'move-left'){
-                    server.gameIDs[gameID].pos.x -= 4;
+                    server.gameIDs[gameID].pos.x -= 1;
                     server.sendUniChunk(client.id);
                 }
                 if(data.cmd == 'move-right'){
-                    server.gameIDs[gameID].pos.x += 4;
+                    server.gameIDs[gameID].pos.x += 1;
                     server.sendUniChunk(client.id);
                 }
             });
