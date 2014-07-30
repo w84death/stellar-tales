@@ -65,7 +65,10 @@ var game = {
     },{
         log: 'Use <strong>arrows to move</strong> through the universe'
     }],
-    commandCenter: [],
+    commandCenter: {
+        info:[],
+        commands: []
+    },
     pos:{
         x: 0,
         y: 0,
@@ -214,26 +217,23 @@ var game = {
                     command: true
                 });
 
-                console.log(data.info)
+                game.commandCenter.info = [];
+                game.commandCenter.commands = [];
+
                 if(data.info){
-                    game.gameLog.push({
-                        log: 'You aimed at <em>'+ data.info.name+'</em>' + (data.info.size? ' of <em>size '+data.info.size+'</em>': '')
-                    });
+                    game.UI.command.title = data.info.name;
+                    game.commandCenter.info.push('You aimed at <em>'+ data.info.name+'</em>' + (data.info.size? ' of <em>size '+data.info.size+'</em>': ''));
 
                     if(data.info.energy){
-                        game.gameLog.push({
-                            log: 'It has <em>'+ data.info.energy +' energy </em>'
-                        });
+                         game.commandCenter.info.push('It has <em>'+ data.info.energy +' energy </em>');
                     }
 
                     if(data.info.material){
-                        game.gameLog.push({
-                            log: 'It has <em>'+ (data.info.material) + ' material</em>'
-                        });
+                         game.commandCenter.info.push('It has <em>'+ (data.info.material) + ' material</em>');
                     }
 
                     game.render({
-                        gameLog: true
+                        command: true
                     });
 
                     game.moog({
@@ -243,7 +243,14 @@ var game = {
                         oscilator: 2,
                         vol: 0.2
                     });
+                }else{
+                    game.UI.command.title = 'Space void';
+
                 }
+
+                game.render({
+                    command: true
+                });
 
                 // this needs refactor for speed
                 // full chunk for fresh load
@@ -461,16 +468,25 @@ var game = {
             // STATS
             bufferLine = '';
             bufferLine += this.drawHeader('command',this.UI.command.title);
-            bufferLine += 'Position: <em>'+(this.pos.x+((this.UI.game.width*0.5)<<0))+':'+(this.pos.y+((this.UI.game.height*0.5)<<0))+'</em><br/>';
+            var aimPos = {
+                x: this.pos.x+((this.UI.game.width*0.5)<<0),
+                y: this.pos.y+((this.UI.game.height*0.5)<<0)
+            }
+            bufferLine += 'Position: <em>'+(aimPos.x<0? '-':'+')+z(Math.abs(aimPos.x),4)+':'+(aimPos.y<0? '-':'+')+z(Math.abs(aimPos.y),4)+'</em><br/><br/>';
+            for (var i = 0; i < this.commandCenter.info.length; i++) {
+                bufferLine += this.commandCenter.info[i]+'<br/>';
+            };
             bufferLine += '<br/>';
-            bufferLine += '<br/>';
+
             // COMMAND
             bufferLine += this.drawHeader('command','Command Center');
-            bufferLine += '<br/>';
-            bufferLine += '<br/>';
-            for (var i = 0; i < this.commandCenter.length; i++) {
-                bufferLine += '[<span class="button" data-do="'+this.commandCenter[i].cmd+'" data-to="'+this.commandCenter[i].to+'">'+this.commandCenter[i].label+'</span>]<br/>';
+            for (var i = 0; i < this.commandCenter.commands.length; i++) {
+                bufferLine += '[<span class="button" data-do="'+this.commandCenter.commands[i].cmd+'" data-to="'+this.commandCenter.commands[i].to+'">'+this.commandCenter.commands[i].label+'</span>]<br/>';
             };
+            if(i === 0){
+                bufferLine += 'No commands available<br/>';
+            }
+            bufferLine += '<br/>';
 
             // DEBUG
             bufferLine += this.drawHeader('command','Debug info');
@@ -541,13 +557,10 @@ var game = {
 
 };
 
-function shuffleArray(array) {
-    for (var i = array.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
-    }
-    return array;
+function z(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
 }
+
 game.init();
