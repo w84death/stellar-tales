@@ -524,7 +524,7 @@ var game = {
         if(params.command){
             var anchors = this.UI.command.html.getElementsByClassName("button");
             for (var i = 0; i < anchors.length ; i++) {
-                anchors[i].removeEventListener('click');
+                anchors[i].removeEventListener('click', true);
             }
         }
     },
